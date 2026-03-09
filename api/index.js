@@ -26,7 +26,7 @@ app.post('/api/register', upload.single('photo'), async (req, res) => {
     try {
         let {
             name,
-            age,
+            dob,
             mobile_number,
             aadhaar,
             qualification,
@@ -44,7 +44,7 @@ app.post('/api/register', upload.single('photo'), async (req, res) => {
 
         // Strict Backend Validation
         if (!name || name.trim().length < 2) return res.status(400).json({ error: 'Valid Name is required' });
-        if (!age || isNaN(age) || age < 1 || age > 150) return res.status(400).json({ error: 'Valid Age is required' });
+        if (!dob || isNaN(Date.parse(dob))) return res.status(400).json({ error: 'Valid Date of Birth is required' });
         if (!mobile_number || !/^\d{10}$/.test(mobile_number)) return res.status(400).json({ error: 'Valid 10-digit Mobile Number is required' });
         if (!aadhaar || !/^\d{12}$/.test(aadhaar)) return res.status(400).json({ error: 'Valid 12-digit Aadhaar Number is required' });
         if (!qualification || qualification.trim().length < 2) return res.status(400).json({ error: 'Valid Qualification is required' });
@@ -65,11 +65,11 @@ app.post('/api/register', upload.single('photo'), async (req, res) => {
         // 2. Save data to Vercel PostgresDB
         if (process.env.POSTGRES_URL) {
             const query = `
-                INSERT INTO members (name, age, mobile_number, aadhaar, qualification, business_nature, business_address, residential_address, photo_base64)
+                INSERT INTO members (name, dob, mobile_number, aadhaar, qualification, business_nature, business_address, residential_address, photo_base64)
                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
                 RETURNING id;
             `;
-            const values = [name.trim(), parseInt(age), mobile_number, aadhaar, qualification.trim(), business_nature.trim(), business_address ? business_address.trim() : null, residential_address.trim(), photoBase64];
+            const values = [name.trim(), dob, mobile_number, aadhaar, qualification.trim(), business_nature.trim(), business_address ? business_address.trim() : null, residential_address.trim(), photoBase64];
 
             // Note: @vercel/postgres uses parameterization differently depending on if you use `sql` string tag or `sql.query`
             const result = await sql.query(query, values);
@@ -80,7 +80,7 @@ app.post('/api/register', upload.single('photo'), async (req, res) => {
             });
         } else {
             // Fallback for local development if Postgres is not set up
-            console.log("Mock Registration Data received:", { name, age, photoBase64: photoBase64 ? 'present' : 'null' });
+            console.log("Mock Registration Data received:", { name, dob, photoBase64: photoBase64 ? 'present' : 'null' });
             res.status(201).json({
                 message: 'Registration successful (Mock DB)',
                 photoUrl: photoBase64
