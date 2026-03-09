@@ -27,6 +27,7 @@ app.post('/api/register', upload.single('photo'), async (req, res) => {
         const {
             name,
             age,
+            mobile_number,
             aadhaar,
             qualification,
             business_nature,
@@ -37,9 +38,14 @@ app.post('/api/register', upload.single('photo'), async (req, res) => {
         const file = req.file;
         let photoBase64 = null;
 
-        if (!name || !age || !aadhaar || !qualification || !business_nature || !residential_address) {
-            return res.status(400).json({ error: 'Missing required fields' });
-        }
+        // Strict Backend Validation
+        if (!name || name.trim().length < 2) return res.status(400).json({ error: 'Valid Name is required' });
+        if (!age || isNaN(age) || age < 1 || age > 150) return res.status(400).json({ error: 'Valid Age is required' });
+        if (!mobile_number || !/^\d{10}$/.test(mobile_number)) return res.status(400).json({ error: 'Valid 10-digit Mobile Number is required' });
+        if (!aadhaar || !/^\d{12}$/.test(aadhaar)) return res.status(400).json({ error: 'Valid 12-digit Aadhaar Number is required' });
+        if (!qualification || qualification.trim().length < 2) return res.status(400).json({ error: 'Valid Qualification is required' });
+        if (!business_nature || business_nature.trim().length < 2) return res.status(400).json({ error: 'Valid Business/Job Nature is required' });
+        if (!residential_address || residential_address.trim().length < 5) return res.status(400).json({ error: 'Valid Residential Address is required' });
 
         // 1. Convert and heavily compress uploaded photo to Base64 (to store directly in database easily)
         if (file) {
@@ -55,11 +61,11 @@ app.post('/api/register', upload.single('photo'), async (req, res) => {
         // 2. Save data to Vercel PostgresDB
         if (process.env.POSTGRES_URL) {
             const query = `
-                INSERT INTO members (name, age, aadhaar, qualification, business_nature, business_address, residential_address, photo_base64)
-                VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+                INSERT INTO members (name, age, mobile_number, aadhaar, qualification, business_nature, business_address, residential_address, photo_base64)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
                 RETURNING id;
             `;
-            const values = [name, parseInt(age), aadhaar, qualification, business_nature, business_address, residential_address, photoBase64];
+            const values = [name.trim(), parseInt(age), mobile_number, aadhaar, qualification.trim(), business_nature.trim(), business_address ? business_address.trim() : null, residential_address.trim(), photoBase64];
 
             // Note: @vercel/postgres uses parameterization differently depending on if you use `sql` string tag or `sql.query`
             const result = await sql.query(query, values);

@@ -46,7 +46,7 @@
             <div class="form-row">
                 <div class="input-group">
                     <label for="name">Name of Member <span class="required">*</span></label>
-                    <input type="text" id="name" name="name" placeholder="Enter full name" required>
+                    <input type="text" id="name" name="name" placeholder="Enter full name" minlength="2" required>
                 </div>
                 <div class="input-group">
                     <label for="age">Age <span class="required">*</span></label>
@@ -56,14 +56,22 @@
 
             <div class="form-row">
                 <div class="input-group">
+                    <label for="mobile_number">Mobile Number <span class="required">*</span></label>
+                    <input type="tel" id="mobile_number" name="mobile_number" placeholder="10-digit mobile number"
+                        pattern="\d{10}" title="Please enter exactly 10 digits" required>
+                </div>
+                <div class="input-group">
                     <label for="aadhaar">Aadhaar Number <span class="required">*</span></label>
                     <input type="text" id="aadhaar" name="aadhaar" placeholder="12-digit Aadhaar number"
                         pattern="\d{12}" title="Please enter exactly 12 digits" required>
                 </div>
-                <div class="input-group">
+            </div>
+
+            <div class="form-row">
+                <div class="input-group full-width">
                     <label for="qualification">Qualification <span class="required">*</span></label>
                     <input type="text" id="qualification" name="qualification" placeholder="Highest qualification"
-                        required>
+                        minlength="2" required>
                 </div>
             </div>
 
@@ -73,7 +81,7 @@
                 <div class="input-group full-width">
                     <label for="business_nature">Nature of Business or Job <span class="required">*</span></label>
                     <input type="text" id="business_nature" name="business_nature"
-                        placeholder="Describe your profession or business" required>
+                        placeholder="Describe your profession or business" minlength="2" required>
                 </div>
             </div>
 
@@ -90,7 +98,7 @@
                 <div class="input-group full-width" style="position: relative;">
                     <label for="residential_address">Residential Address <span class="required">*</span></label>
                     <textarea id="residential_address" name="residential_address" rows="3"
-                        placeholder="Enter residential address" required></textarea>
+                        placeholder="Enter residential address" minlength="5" required></textarea>
 
                     <div class="checkbox-wrapper">
                         <input type="checkbox" id="same_address" onchange="copyAddress()">
