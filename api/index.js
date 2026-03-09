@@ -24,7 +24,7 @@ const upload = multer({
 // API Endpoint to handle registration
 app.post('/api/register', upload.single('photo'), async (req, res) => {
     try {
-        const {
+        let {
             name,
             age,
             mobile_number,
@@ -37,6 +37,10 @@ app.post('/api/register', upload.single('photo'), async (req, res) => {
 
         const file = req.file;
         let photoBase64 = null;
+
+        // Strip spaces from formatted numbers for backend validation and storage
+        if (mobile_number) mobile_number = mobile_number.replace(/\s+/g, '');
+        if (aadhaar) aadhaar = aadhaar.replace(/\s+/g, '');
 
         // Strict Backend Validation
         if (!name || name.trim().length < 2) return res.status(400).json({ error: 'Valid Name is required' });
