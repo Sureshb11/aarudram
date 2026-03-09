@@ -34,12 +34,12 @@ body {
     justify-content: center;
     align-items: flex-start;
     padding: 2rem 1rem;
-    
+
     /* Elegant light gradient background */
-    background-image: 
-        radial-gradient(at 0% 0%, hsla(253,16%,97%,1) 0, transparent 50%), 
-        radial-gradient(at 50% 0%, hsla(225,39%,90%,1) 0, transparent 50%), 
-        radial-gradient(at 100% 0%, hsla(339,49%,96%,1) 0, transparent 50%);
+    background-image:
+        radial-gradient(at 0% 0%, hsla(253, 16%, 97%, 1) 0, transparent 50%),
+        radial-gradient(at 50% 0%, hsla(225, 39%, 90%, 1) 0, transparent 50%),
+        radial-gradient(at 100% 0%, hsla(339, 49%, 96%, 1) 0, transparent 50%);
     background-attachment: fixed;
 }
 
@@ -61,6 +61,7 @@ body {
         opacity: 0;
         transform: translateY(20px);
     }
+
     to {
         opacity: 1;
         transform: translateY(0);
@@ -158,7 +159,10 @@ body {
 .photo-preview::after {
     content: '';
     position: absolute;
-    top: 0; left: 0; right: 0; bottom: 0;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
     background-color: rgba(79, 70, 229, 0.05);
     opacity: 0;
     transition: var(--transition);
@@ -260,6 +264,8 @@ label {
 
 input[type="text"],
 input[type="number"],
+input[type="date"],
+input[type="tel"],
 textarea {
     width: 100%;
     padding: 0.875rem 1rem;
@@ -274,6 +280,8 @@ textarea {
 
 input[type="text"]:focus,
 input[type="number"]:focus,
+input[type="date"]:focus,
+input[type="tel"]:focus,
 textarea:focus {
     outline: none;
     border-color: var(--primary-color);
@@ -282,6 +290,8 @@ textarea:focus {
 
 input[type="text"]:hover:not(:focus),
 input[type="number"]:hover:not(:focus),
+input[type="date"]:hover:not(:focus),
+input[type="tel"]:hover:not(:focus),
 textarea:hover:not(:focus) {
     border-color: #cbd5e1;
 }
@@ -367,16 +377,16 @@ input[type="checkbox"] {
         padding: 1.5rem;
         border-radius: var(--radius-md);
     }
-    
+
     body {
         padding: 1rem 0.5rem;
         background-attachment: scroll;
     }
-    
+
     .form-header h1 {
         font-size: 1.75rem;
     }
-    
+
     .photo-preview {
         width: 120px;
         height: 120px;
