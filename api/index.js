@@ -6,6 +6,22 @@ const { put } = require('@vercel/blob');
 const { sql } = require('@vercel/postgres');
 require('dotenv').config();
 
+// Auto-sanitize database environment variables (removes 'psql "' prefix, quotes, and trailing comments)
+const sanitizeDbUrl = (url) => {
+    if (!url || typeof url !== 'string') return url;
+    let cleaned = url.trim();
+    // Remove common copy-paste artifacts
+    if (cleaned.startsWith('psql "')) cleaned = cleaned.substring(6);
+    if (cleaned.endsWith('"')) cleaned = cleaned.substring(0, cleaned.length - 1);
+    // Remove anything after a space (like "this is database" comments)
+    cleaned = cleaned.split(/\s+/)[0];
+    return cleaned;
+};
+
+if (process.env.POSTGRES_URL) process.env.POSTGRES_URL = sanitizeDbUrl(process.env.POSTGRES_URL);
+if (process.env.DATABASE_URL) process.env.DATABASE_URL = sanitizeDbUrl(process.env.DATABASE_URL);
+if (process.env.POSTGRES_PRISMA_URL) process.env.POSTGRES_PRISMA_URL = sanitizeDbUrl(process.env.POSTGRES_PRISMA_URL);
+
 const app = express();
 const port = process.env.PORT || 3000;
 
