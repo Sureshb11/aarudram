@@ -72,7 +72,10 @@ app.post('/api/register', upload.single('photo'), async (req, res) => {
         }
 
         // 2. Save data to Vercel PostgresDB
-        if (process.env.POSTGRES_URL) {
+        const dbUrl = process.env.POSTGRES_URL || process.env.DATABASE_URL;
+        
+        if (dbUrl) {
+            console.log('Attempting database insert...');
             // Using the template literal approach for more reliable parameterization
             const result = await sql`
                 INSERT INTO members (
@@ -89,16 +92,23 @@ app.post('/api/register', upload.single('photo'), async (req, res) => {
             `;
 
             if (result && result.rows && result.rows[0]) {
+                const memberId = result.rows[0].id;
+                console.log(`Registration successful for member ID: ${memberId}`);
                 return res.status(201).json({
                     message: 'Registration successful',
-                    memberId: result.rows[0].id
+                    memberId: memberId
                 });
             } else {
+                console.error('Database insert failed: No result rows returned');
                 throw new Error('Database insert failed - no ID returned');
             }
         } else {
-            // Error if Postgres is not configured
-            return res.status(500).json({ error: 'Database connection not configured' });
+            // Error if no database environment variable is found
+            console.error('Database configuration error: Neither POSTGRES_URL nor DATABASE_URL found');
+            return res.status(500).json({ 
+                error: 'Database connection not configured', 
+                debugInfo: 'Please ensure environment variables are set in Vercel dashboard.' 
+            });
         }
     } catch (error) {
         console.error('Registration Error:', error);
@@ -108,7 +118,12 @@ app.post('/api/register', upload.single('photo'), async (req, res) => {
 
 // Route for testing server status
 app.get('/api/status', (req, res) => {
-    res.json({ status: 'Server is running', postgres: !!process.env.POSTGRES_URL, blob: !!process.env.BLOB_READ_WRITE_TOKEN });
+    res.json({ 
+        status: 'Server is running', 
+        hasPostgresUrl: !!process.env.POSTGRES_URL, 
+        hasDatabaseUrl: !!process.env.DATABASE_URL,
+        blob: !!process.env.BLOB_READ_WRITE_TOKEN 
+    });
 });
 
 module.exports = app;
