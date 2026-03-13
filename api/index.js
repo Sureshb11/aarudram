@@ -117,8 +117,19 @@ app.post('/api/register', upload.single('photo'), async (req, res) => {
             });
         }
     } catch (error) {
-        console.error('Registration Error:', error);
-        res.status(500).json({ error: 'Registration failed: ' + error.message });
+        console.error('Registration Error Details:', {
+            message: error.message,
+            stack: error.stack,
+            body: req.body ? { ...req.body, photo: 'REDACTED' } : 'null',
+            file: req.file ? { size: req.file.size, mimetype: req.file.mimetype } : 'null'
+        });
+        
+        res.status(500).json({ 
+            error: 'Registration failed', 
+            message: error.message,
+            diagnostic: process.env.NODE_ENV === 'development' ? error.stack : 'Check server logs for details',
+            errorCode: error.code || 'UNKNOWN_ERROR'
+        });
     }
 });
 
