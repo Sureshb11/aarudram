@@ -6,6 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Aarudram Registration Form</title>
     <meta name="description" content="Official registration form for Aarudram members">
+    <link rel="icon" href="/Aarudran_logo.png">
     <link rel="stylesheet" href="styles.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -16,7 +17,7 @@
     <div class="form-container">
         <div class="form-header">
             <div class="logo-container">
-                <img src="Aarudran_logo.png" alt="Aarudram Logo" class="logo">
+                <img id="app-logo" src="Aarudran_logo.png" alt="Aarudram Logo" class="logo">
             </div>
             <h1>Aarudram Registration Form</h1>
             <p>Please provide your details below to register.</p>
@@ -115,10 +116,61 @@
     </div>
 
     <script>
+        // Keep the upload under Vercel limits by compressing client-side
+        const MAX_UPLOAD_BYTES = 1.2 * 1024 * 1024; // ~1.2MB target
+        let preparedPhotoBlob = null;
+
+        async function compressImageToWebp(file) {
+            const dataUrl = await new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(reader.result);
+                reader.onerror = reject;
+                reader.readAsDataURL(file);
+            });
+
+            const img = await new Promise((resolve, reject) => {
+                const image = new Image();
+                image.onload = () => resolve(image);
+                image.onerror = reject;
+                image.src = dataUrl;
+            });
+
+            const maxDim = 1200;
+            const scale = Math.min(1, maxDim / Math.max(img.width, img.height));
+            const w = Math.max(1, Math.round(img.width * scale));
+            const h = Math.max(1, Math.round(img.height * scale));
+
+            const canvas = document.createElement('canvas');
+            canvas.width = w;
+            canvas.height = h;
+            const ctx = canvas.getContext('2d', { alpha: false });
+            ctx.drawImage(img, 0, 0, w, h);
+
+            const blob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/webp', 0.8));
+            return blob;
+        }
+
         // Photo preview logic
         document.getElementById('photo').addEventListener('change', function (e) {
             const file = e.target.files[0];
             if (file) {
+                // Prepare compressed blob for upload (keeps requests small enough for Vercel)
+                preparedPhotoBlob = null;
+                (async () => {
+                    try {
+                        const blob = await compressImageToWebp(file);
+                        preparedPhotoBlob = blob || null;
+                        if (preparedPhotoBlob && preparedPhotoBlob.size > MAX_UPLOAD_BYTES) {
+                            // Still too large (rare); skip attaching photo so registration can proceed
+                            preparedPhotoBlob = null;
+                            alert('Photo is too large to upload. Please choose a smaller photo.');
+                        }
+                    } catch (err) {
+                        preparedPhotoBlob = null;
+                        console.error('Photo compression failed:', err);
+                    }
+                })();
+
                 const reader = new FileReader();
                 reader.onload = function (e) {
                     const preview = document.getElementById('photoPreview');
@@ -179,6 +231,13 @@
             submitBtn.disabled = true;
 
             const formData = new FormData(this);
+            // Replace the original photo with the compressed version (if available)
+            if (preparedPhotoBlob) {
+                formData.set('photo', preparedPhotoBlob, 'photo.webp');
+            } else {
+                // If we couldn't prepare a safe photo upload, avoid sending the original large file
+                formData.delete('photo');
+            }
 
             try {
                 const response = await fetch('/api/register', {
@@ -186,11 +245,18 @@
                     body: formData
                 });
 
-                const result = await response.json();
+                let result = null;
+                try {
+                    result = await response.json();
+                } catch (parseErr) {
+                    const text = await response.text().catch(() => '');
+                    throw new Error(text || 'Unexpected non-JSON response from server');
+                }
 
                 if (response.ok) {
                     alert('Registration successful!');
                     this.reset();
+                    preparedPhotoBlob = null;
                     document.getElementById('photoPreview').style.backgroundImage = 'none';
                     document.getElementById('photoPreview').innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg><span>Upload Photo</span>';
                     document.getElementById('photoPreview').style.border = '2px dashed #cbd5e1';
@@ -199,7 +265,12 @@
                 }
             } catch (error) {
                 console.error('Error submitting form:', error);
-                alert('An error occurred while submitting the form. Please try again.');
+                const msg = String(error && error.message ? error.message : error);
+                if (msg.includes('413') || msg.toLowerCase().includes('too large')) {
+                    alert('Upload too large. Please choose a smaller photo and try again.');
+                } else {
+                    alert('An error occurred while submitting the form. Please try again.');
+                }
             } finally {
                 submitBtn.textContent = originalText;
                 submitBtn.disabled = false;
