@@ -113,9 +113,34 @@
                 <button type="submit" class="submit-btn">Submit Registration</button>
             </div>
         </form>
+
+        <!-- Success Overlay -->
+        <div id="successOverlay" class="success-overlay">
+            <div class="success-content">
+                <div class="checkmark-container">
+                    <svg class="checkmark" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 52 52">
+                        <circle class="checkmark-circle" cx="26" cy="26" r="25" fill="none"/>
+                        <path class="checkmark-check" fill="none" d="M14.1 27.2l7.1 7.2 16.7-16.8"/>
+                    </svg>
+                </div>
+                <h2 class="success-title">Registration Successful!</h2>
+                <p class="success-text">Welcome to Aarudram. Your details have been securely stored in our database.</p>
+                <button type="button" class="register-another-btn" onclick="resetForm()">Register Another Member</button>
+            </div>
+        </div>
     </div>
 
     <script>
+        // ... previous script content ...
+        function resetForm() {
+            document.getElementById('successOverlay').classList.remove('active');
+            document.getElementById('registrationForm').reset();
+            preparedPhotoBlob = null;
+            document.getElementById('photoPreview').style.backgroundImage = 'none';
+            document.getElementById('photoPreview').innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg><span>Upload Photo</span>';
+            document.getElementById('photoPreview').style.border = '2px dashed #cbd5e1';
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
         // Keep the upload under Vercel limits by compressing client-side
         const MAX_UPLOAD_BYTES = 1.2 * 1024 * 1024; // ~1.2MB target
         let preparedPhotoBlob = null;
@@ -254,12 +279,8 @@
                 }
 
                 if (response.ok) {
-                    alert('Registration successful!');
-                    this.reset();
-                    preparedPhotoBlob = null;
-                    document.getElementById('photoPreview').style.backgroundImage = 'none';
-                    document.getElementById('photoPreview').innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg><span>Upload Photo</span>';
-                    document.getElementById('photoPreview').style.border = '2px dashed #cbd5e1';
+                    document.getElementById('successOverlay').classList.add('active');
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
                 } else {
                     alert('Error: ' + (result.error || 'Failed to submit form'));
                 }
