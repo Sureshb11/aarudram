@@ -12,6 +12,7 @@ const port = process.env.PORT || 3000;
 // Middleware
 app.use(cors());
 app.use(express.json({ limit: '10mb' }));
+app.use(express.static('.')); // Serve static files from the root (index.html, styles.css, etc.)
 
 // Set up multer for handling file uploads (stored in memory temporarily)
 const storage = multer.memoryStorage();
@@ -72,10 +73,14 @@ app.post('/api/register', upload.single('photo'), async (req, res) => {
         }
 
         // 2. Save data to Vercel PostgresDB
-        const dbUrl = process.env.POSTGRES_URL || process.env.DATABASE_URL;
+        const dbUrl = process.env.POSTGRES_URL || 
+                      process.env.DATABASE_URL || 
+                      process.env.POSTGRES_PRISMA_URL || 
+                      process.env.POSTGRES_URL_NON_POOLING ||
+                      process.env.DATABASE_URL_UNPOOLED;
         
         if (dbUrl) {
-            console.log('Attempting database insert...');
+            console.log('Attempting database insert with detected connection string...');
             // Using the template literal approach for more reliable parameterization
             const result = await sql`
                 INSERT INTO members (
@@ -104,10 +109,11 @@ app.post('/api/register', upload.single('photo'), async (req, res) => {
             }
         } else {
             // Error if no database environment variable is found
-            console.error('Database configuration error: Neither POSTGRES_URL nor DATABASE_URL found');
+            console.error('Database configuration error: No valid connection string found in environment variables');
             return res.status(500).json({ 
                 error: 'Database connection not configured', 
-                debugInfo: 'Please ensure environment variables are set in Vercel dashboard.' 
+                debugInfo: 'Available variables: ' + Object.keys(process.env).filter(k => k.includes('POSTGRES') || k.includes('DATABASE')).join(', '),
+                message: 'Please ensure environment variables are set in Vercel dashboard and the project is redeployed.'
             });
         }
     } catch (error) {
@@ -118,10 +124,13 @@ app.post('/api/register', upload.single('photo'), async (req, res) => {
 
 // Route for testing server status
 app.get('/api/status', (req, res) => {
+    const envVars = Object.keys(process.env);
     res.json({ 
         status: 'Server is running', 
+        detectedVariables: envVars.filter(k => k.includes('POSTGRES') || k.includes('DATABASE')),
         hasPostgresUrl: !!process.env.POSTGRES_URL, 
         hasDatabaseUrl: !!process.env.DATABASE_URL,
+        hasPrismaUrl: !!process.env.POSTGRES_PRISMA_URL,
         blob: !!process.env.BLOB_READ_WRITE_TOKEN 
     });
 });
