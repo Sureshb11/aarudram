@@ -38,6 +38,15 @@ app.post('/api/register', upload.single('photo'), async (req, res) => {
         const file = req.file;
         let photoBase64 = null;
 
+        // Calculate age from DOB
+        const birthDate = new Date(dob);
+        const today = new Date();
+        let calculatedAge = today.getFullYear() - birthDate.getFullYear();
+        const m = today.getMonth() - birthDate.getMonth();
+        if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+            calculatedAge--;
+        }
+
         // Strip spaces from formatted numbers for backend validation and storage
         if (mobile_number) mobile_number = mobile_number.replace(/\s+/g, '');
         if (aadhaar) aadhaar = aadhaar.replace(/\s+/g, '');
@@ -51,11 +60,11 @@ app.post('/api/register', upload.single('photo'), async (req, res) => {
         if (!business_nature || business_nature.trim().length < 2) return res.status(400).json({ error: 'Valid Business/Job Nature is required' });
         if (!residential_address || residential_address.trim().length < 5) return res.status(400).json({ error: 'Valid Residential Address is required' });
 
-        // 1. Convert and heavily compress uploaded photo to Base64 (to store directly in database easily)
+        // 1. Convert and heavily compress uploaded photo to Base64
         if (file) {
             const compressedBuffer = await sharp(file.buffer)
-                .resize({ width: 400, height: 400, fit: 'inside' }) // Max 400x400
-                .webp({ quality: 80 }) // Convert to high-efficiency webp
+                .resize({ width: 300, height: 300, fit: 'cover' }) // Resize to smaller square for profile
+                .webp({ quality: 60, effort: 6 }) // Aggressive but acceptable compression
                 .toBuffer();
 
             const b64 = compressedBuffer.toString('base64');
@@ -64,31 +73,36 @@ app.post('/api/register', upload.single('photo'), async (req, res) => {
 
         // 2. Save data to Vercel PostgresDB
         if (process.env.POSTGRES_URL) {
-            const query = `
-                INSERT INTO members (name, dob, mobile_number, aadhaar, qualification, business_nature, business_address, residential_address, photo_base64)
-                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+            // Using the template literal approach for more reliable parameterization
+            const result = await sql`
+                INSERT INTO members (
+                    name, age, dob, mobile_number, aadhaar, 
+                    qualification, business_nature, business_address, 
+                    residential_address, photo_base64
+                )
+                VALUES (
+                    ${name.trim()}, ${calculatedAge}, ${dob}, ${mobile_number}, ${aadhaar}, 
+                    ${qualification.trim()}, ${business_nature.trim()}, ${business_address ? business_address.trim() : null}, 
+                    ${residential_address.trim()}, ${photoBase64}
+                )
                 RETURNING id;
             `;
-            const values = [name.trim(), dob, mobile_number, aadhaar, qualification.trim(), business_nature.trim(), business_address ? business_address.trim() : null, residential_address.trim(), photoBase64];
 
-            // Note: @vercel/postgres uses parameterization differently depending on if you use `sql` string tag or `sql.query`
-            const result = await sql.query(query, values);
-
-            res.status(201).json({
-                message: 'Registration successful',
-                memberId: result.rows[0].id
-            });
+            if (result && result.rows && result.rows[0]) {
+                return res.status(201).json({
+                    message: 'Registration successful',
+                    memberId: result.rows[0].id
+                });
+            } else {
+                throw new Error('Database insert failed - no ID returned');
+            }
         } else {
-            // Fallback for local development if Postgres is not set up
-            console.log("Mock Registration Data received:", { name, dob, photoBase64: photoBase64 ? 'present' : 'null' });
-            res.status(201).json({
-                message: 'Registration successful (Mock DB)',
-                photoUrl: photoBase64
-            });
+            // Error if Postgres is not configured
+            return res.status(500).json({ error: 'Database connection not configured' });
         }
     } catch (error) {
         console.error('Registration Error:', error);
-        res.status(500).json({ error: 'Internal server error during registration' });
+        res.status(500).json({ error: 'Registration failed: ' + error.message });
     }
 });
 

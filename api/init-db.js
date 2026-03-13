@@ -10,7 +10,7 @@ async function initializeDatabase() {
             CREATE TABLE IF NOT EXISTS members (
                 id SERIAL PRIMARY KEY,
                 name VARCHAR(255) NOT NULL,
-                age INTEGER NOT NULL,
+                age INTEGER, -- Made nullable as we use dob now
                 aadhaar VARCHAR(12) NOT NULL,
                 qualification VARCHAR(255) NOT NULL,
                 business_nature VARCHAR(255) NOT NULL,
